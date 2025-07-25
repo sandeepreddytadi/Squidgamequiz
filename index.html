@@ -681,7 +681,7 @@
                 // Add a small delay to simulate turning, then load question
                 setTimeout(() => {
                     quizActive = true; // Quiz is now active
-                    loadQuestion();
+                    loadQuestion(); // This function populates the actual question and options
                 }, 3000); // Wait for rotation to complete (3 seconds)
                 console.log('Head rotating to face player, quiz starting soon.');
             } else if (e.key.toLowerCase() === 'r' && head && quizActive) {
