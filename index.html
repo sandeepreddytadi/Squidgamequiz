@@ -678,12 +678,12 @@
         window.addEventListener('keydown', (e) => {
             if (e.key.toLowerCase() === 'r' && head && !quizActive) {
                 rotateHead(0, 3000); // Rotate to 0 degrees (facing player) over 3 seconds
-                // Add a small delay to simulate turning, then load question
+                // Add a total delay of 6 seconds (3 for rotation + 3 for question display)
                 setTimeout(() => {
                     quizActive = true; // Quiz is now active
                     loadQuestion(); // This function populates the actual question and options
-                }, 3000); // Wait for rotation to complete (3 seconds)
-                console.log('Head rotating to face player, quiz starting soon.');
+                }, 6000); // Wait for rotation to complete (3s) + additional 3s delay
+                console.log('Head rotating to face player, question will appear in 6 seconds.');
             } else if (e.key.toLowerCase() === 'r' && head && quizActive) {
                 console.log('Quiz is already active. Pressing "R" again will not rotate the head or restart the question.');
             } else if (e.key.toLowerCase() === 'r' && !head) {
