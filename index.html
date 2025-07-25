@@ -4,12 +4,8 @@
   <meta charset="UTF-8" />
   <title>Squid Game Doll Viewer</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
     body {
+      margin: 0;
       display: flex;
       height: 100vh;
       overflow: hidden;
@@ -21,7 +17,6 @@
     }
     #game-area {
       width: 75%;
-      height: 100%;
       background: #222;
       color: white;
       display: flex;
@@ -29,22 +24,18 @@
       justify-content: center;
       font-size: 1.5rem;
     }
-    canvas {
-      display: block;
-    }
   </style>
 </head>
 <body>
   <div id="viewer"></div>
-  <div id="game-area">
-    Game Area (75%)
-  </div>
+  <div id="game-area">Game Area</div>
 
-  <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
-    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js';
-    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/controls/OrbitControls.js';
+  <!-- THREE.js and supporting scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/controls/OrbitControls.js"></script>
 
+  <script>
     let scene, camera, renderer, controls;
     let doll, dollHead;
 
@@ -64,7 +55,7 @@
       renderer.setSize(container.clientWidth, container.clientHeight);
       container.appendChild(renderer.domElement);
 
-      controls = new OrbitControls(camera, renderer.domElement);
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.enableZoom = false;
       controls.target.set(0, 1.2, 0);
@@ -73,17 +64,16 @@
       light.position.set(0, 20, 0);
       scene.add(light);
 
-      const loader = new GLTFLoader();
+      const loader = new THREE.GLTFLoader();
       loader.load('./doll.glb', function (gltf) {
         doll = gltf.scene;
         doll.scale.set(1.2, 1.2, 1.2);
         scene.add(doll);
 
-        // Try to find "head" part in model
         doll.traverse((child) => {
           if (child.name.toLowerCase().includes('head')) {
             dollHead = child;
-            console.log('Doll head detected:', child.name);
+            console.log('Doll head found:', child.name);
           }
         });
       });
