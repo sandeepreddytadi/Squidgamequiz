@@ -516,4 +516,197 @@
 
             let currentOtherIndex = 0;
             for (let i = 0; i < 4; i++) {
-                if (i 
+                if (i === correct) {
+                    msg += `Option ${String.fromCharCode(65 + i)}: ${correctPercentage}%\n`;
+                } else {
+                    msg += `Option ${String.fromCharCode(65 + i)}: ${otherPercentages[currentOtherIndex++]}%\n`;
+                }
+            }
+            showModal("📊 Audience Poll", msg);
+        }
+
+        // GLB Model Script (Three.js)
+        let scene, camera, renderer, model, head;
+        const glbCanvas = document.getElementById("glb-canvas");
+
+        // Scene Setup
+        scene = new THREE.Scene();
+        // Adjust camera position for a better view of the doll
+        camera = new THREE.PerspectiveCamera(45, (0.25 * window.innerWidth) / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 1.5, 4); // Slightly further back
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, canvas: glbCanvas });
+        renderer.setSize(0.25 * window.innerWidth, window.innerHeight);
+
+        // Light
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+        scene.add(ambientLight);
+
+        // Simple doll fallback (since GLTFLoader is not directly available without module imports)
+        function createSimpleDoll() {
+            model = new THREE.Group();
+            
+            const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.4, 1.2, 8);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xffff00 }); // Yellow body
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.6;
+            model.add(body);
+            
+            const headGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+            const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffddaa }); // Skin color
+            head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 1.5;
+            model.add(head);
+            
+            // Hair - two spheres for pigtails
+            const hairMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Brown hair
+            
+            const leftHair = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), hairMaterial);
+            leftHair.position.set(-0.2, 0.2, 0);
+            head.add(leftHair);
+            
+            const rightHair = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), hairMaterial);
+            rightHair.position.set(0.2, 0.2, 0);
+            head.add(rightHair);
+            
+            // Eyes
+            const eyeGeometry = new THREE.SphereGeometry(0.03, 8, 8);
+            const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 }); // Black eyes
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.08, 0.05, 0.2);
+            head.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.08, 0.05, 0.2);
+            head.add(rightEye);
+            
+            model.scale.set(1.5, 1.5, 1.5); // Scale up the doll
+            scene.add(model);
+            
+            console.log('Simple doll created. GLB loading would require a separate GLTFLoader script.');
+        }
+        
+        createSimpleDoll(); // Create the doll when the script loads
+        
+        // OrbitControls - simple implementation for camera movement
+        class OrbitControls {
+            constructor(camera, domElement) {
+                this.camera = camera;
+                this.domElement = domElement;
+                this.enabled = true;
+                
+                let isMouseDown = false;
+                let mouseX = 0, mouseY = 0;
+                
+                domElement.addEventListener('mousedown', (e) => {
+                    isMouseDown = true;
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                });
+                
+                domElement.addEventListener('mouseup', () => {
+                    isMouseDown = false;
+                });
+                
+                domElement.addEventListener('mousemove', (e) => {
+                    if (!isMouseDown) return;
+                    
+                    const deltaX = e.clientX - mouseX;
+                    const deltaY = e.clientY - mouseY;
+                    
+                    // Simple orbital movement around the center (0, 1.5, 0)
+                    const radius = camera.position.distanceTo(new THREE.Vector3(0, 1.5, 0));
+                    let angleX = Math.atan2(camera.position.z, camera.position.x);
+                    let angleY = Math.atan2(camera.position.y - 1.5, radius); // Y-axis rotation around target
+
+                    angleX -= deltaX * 0.005; // Adjust sensitivity
+                    angleY += deltaY * 0.005; // Adjust sensitivity
+
+                    // Clamp vertical rotation to prevent camera from going upside down
+                    angleY = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, angleY));
+
+                    camera.position.x = radius * Math.cos(angleX);
+                    camera.position.z = radius * Math.sin(angleX);
+                    camera.position.y = 1.5 + radius * Math.sin(angleY);
+
+                    camera.lookAt(0, 1.5, 0); // Always look at the doll's center
+                    
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                });
+            }
+        }
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+
+        // Function to smoothly rotate the head
+        let rotationTween = null;
+        function rotateHead(targetRotationY, duration) {
+            if (!head) return;
+
+            // Stop any existing tween
+            if (rotationTween) {
+                clearInterval(rotationTween);
+            }
+
+            const startRotationY = head.rotation.y;
+            const startTime = Date.now();
+
+            rotationTween = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1); // Clamp progress between 0 and 1
+
+                // Easing function (e.g., easeInOutQuad)
+                let easedProgress;
+                if (progress < 0.5) {
+                    easedProgress = 2 * progress * progress;
+                } else {
+                    easedProgress = -1 + (4 - 2 * progress) * progress;
+                }
+
+                head.rotation.y = startRotationY + (targetRotationY - startRotationY) * easedProgress;
+
+                if (progress === 1) {
+                    clearInterval(rotationTween);
+                    rotationTween = null;
+                }
+            }, 1000 / 60); // Update 60 times per second
+        }
+
+        // Key press rotation for doll head
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'r' && head && !quizActive) {
+                rotateHead(0, 3000); // Rotate to 0 degrees (facing player) over 3 seconds
+                // Add a small delay to simulate turning, then load question
+                setTimeout(() => {
+                    quizActive = true; // Quiz is now active
+                    loadQuestion();
+                }, 3000); // Wait for rotation to complete (3 seconds)
+                console.log('Head rotating to face player, quiz starting soon.');
+            } else if (e.key.toLowerCase() === 'r' && head && quizActive) {
+                console.log('Quiz is already active. Pressing "R" again will not rotate the head or restart the question.');
+            } else if (e.key.toLowerCase() === 'r' && !head) {
+                console.log('Head object not found - cannot rotate');
+            }
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        // Start the animation loop when the window loads
+        window.onload = function () {
+            animate();
+        };
+
+        // Handle resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = (0.25 * window.innerWidth) / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(0.25 * window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
