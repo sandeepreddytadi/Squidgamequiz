@@ -30,12 +30,12 @@
   <div id="viewer"></div>
   <div id="game-area">Game Area</div>
 
-  <!-- THREE.js and supporting scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/controls/OrbitControls.js"></script>
+  <!-- Use module script for Three.js -->
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.160.1/build/three.module.js';
+    import { GLTFLoader } from 'https://unpkg.com/three@0.160.1/examples/jsm/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.160.1/examples/jsm/controls/OrbitControls.js';
 
-  <script>
     let scene, camera, renderer, controls;
     let doll, dollHead;
 
@@ -55,25 +55,27 @@
       renderer.setSize(container.clientWidth, container.clientHeight);
       container.appendChild(renderer.domElement);
 
-      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.enableZoom = false;
       controls.target.set(0, 1.2, 0);
+      controls.update();
 
       const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
       light.position.set(0, 20, 0);
       scene.add(light);
 
-      const loader = new THREE.GLTFLoader();
+      const loader = new GLTFLoader();
       loader.load('./doll.glb', function (gltf) {
         doll = gltf.scene;
         doll.scale.set(1.2, 1.2, 1.2);
         scene.add(doll);
 
+        // Try to find head part
         doll.traverse((child) => {
           if (child.name.toLowerCase().includes('head')) {
             dollHead = child;
-            console.log('Doll head found:', child.name);
+            console.log('Doll head detected:', child.name);
           }
         });
       });
