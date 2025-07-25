@@ -30,11 +30,10 @@
   <div id="viewer"></div>
   <div id="game-area">Game Area</div>
 
-  <!-- Use module script for Three.js -->
   <script type="module">
     import * as THREE from 'https://unpkg.com/three@0.160.1/build/three.module.js';
-    import { GLTFLoader } from 'https://unpkg.com/three@0.160.1/examples/jsm/loaders/GLTFLoader.js';
     import { OrbitControls } from 'https://unpkg.com/three@0.160.1/examples/jsm/controls/OrbitControls.js';
+    import { GLTFLoader } from 'https://unpkg.com/three@0.160.1/examples/jsm/loaders/GLTFLoader.js';
 
     let scene, camera, renderer, controls;
     let doll, dollHead;
@@ -62,7 +61,6 @@
       controls.update();
 
       const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-      light.position.set(0, 20, 0);
       scene.add(light);
 
       const loader = new GLTFLoader();
@@ -71,11 +69,9 @@
         doll.scale.set(1.2, 1.2, 1.2);
         scene.add(doll);
 
-        // Try to find head part
         doll.traverse((child) => {
           if (child.name.toLowerCase().includes('head')) {
             dollHead = child;
-            console.log('Doll head detected:', child.name);
           }
         });
       });
