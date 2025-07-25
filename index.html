@@ -83,6 +83,7 @@
             background: limegreen;
             transition: width 0.5s ease;
         }
+        /* Removed .badge styling */
         .question {
             font-size: 1.5em;
             padding: 15px;
@@ -140,6 +141,8 @@
             font-size: 1.2em;
             color: #ffd700;
         }
+        /* Removed .ladder styling */
+
         .final-congrats {
             display: flex;
             flex-direction: column;
@@ -202,7 +205,7 @@
                     <button class="action-btn" onclick="quitGame()">🚪 Quit</button>
                 </div>
             </div>
-        </div>
+            </div>
     </div>
 
     <audio id="soundQuestion" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
@@ -216,8 +219,7 @@
             { q: "Which company developed GPT-4?", a: ["Google", "OpenAI", "Meta", "IBM"], c: 1, d: "easy" },
             { q: "What does AI stand for?", a: ["Automated Input", "Artificial Intelligence", "Advanced Interface", "Analog Input"], c: 1, d: "easy" },
             { q: "Primary language for TensorFlow?", a: ["Java", "C++", "Python", "Ruby"], c: 2, d: "medium" },
-            { q: "Purpose of GPU in AI?",
-                a: ["Power", "Rendering", "Parallel processing", "Memory"], c: 2, d: "medium" },
+            { q: "Purpose of GPU in AI?", a: ["Power", "Rendering", "Parallel processing", "Memory"], c: 2, d: "medium" },
             { q: "Facebook AI framework?", a: ["Keras", "Theano", "PyTorch", "CNTK"], c: 2, d: "medium" },
             { q: "NLP stands for?", a: ["Neural LP", "Natural Language Processing", "Net Language Python", "None"], c: 1, d: "easy" },
             { q: "Image recognition model?", a: ["CNN", "RNN", "GAN", "MLP"], c: 0, d: "medium" },
@@ -231,11 +233,6 @@
         let questions, currentIndex = 0, timer, timeLeft = 30;
         let used5050 = false, usedPhone = false, usedAudience = false;
         let quizActive = false; // Flag to control quiz flow after 'R' press
-        let isRotating = false; // Flag to indicate if doll head is currently rotating
-        let rotationStartTime = 0;
-        const rotationDuration = 2000; // 2 seconds in milliseconds
-        let targetDollRotationY = 0;
-        let initialDollRotationY = 0; // Store the rotation when animation starts
 
         const questionEl = document.getElementById("question");
         const optionsEl = document.getElementById("options");
@@ -249,16 +246,16 @@
         function startGame() {
             document.getElementById("welcome-screen").style.display = "none";
             document.getElementById("game-container").style.display = "flex";
-            restartGame(); // This will reset quiz state and clear question area
-
-            // Start doll rotation to face away
+            restartGame();
+            // Immediately rotate doll's head away and show loading
             if (head) {
-                initialDollRotationY = head.rotation.y;
-                targetDollRotationY = Math.PI; // Rotate 180 degrees (away from camera)
-                isRotating = true;
-                rotationStartTime = performance.now();
-                // `animate()` is already running and will call `updateDollRotation`
+                head.rotation.y = Math.PI; // Rotate 180 degrees (away from camera)
             }
+            questionEl.textContent = "Loading....";
+            optionsEl.innerHTML = ""; // Clear options until 'R' is pressed
+            timerEl.textContent = ""; // Clear timer until 'R' is pressed
+            difficultyEl.textContent = ""; // Clear difficulty until 'R' is pressed
+            quizActive = false; // Quiz is not active yet
         }
 
         function updateProgress() {
@@ -327,19 +324,17 @@
             if (i === correct) {
                 playSound(soundCorrect);
                 currentIndex++;
-                // Set up for next question's doll rotation
-                if (head) {
-                    initialDollRotationY = head.rotation.y;
-                    targetDollRotationY = Math.PI; // Rotate head away after correct answer
-                    isRotating = true;
-                    rotationStartTime = performance.now();
-                }
-                // Clear quiz display immediately
-                questionEl.textContent = "Loading....";
-                optionsEl.innerHTML = "";
-                timerEl.textContent = "";
-                difficultyEl.textContent = "";
-                quizActive = false; // Quiz pauses until next 'R' press
+                setTimeout(() => {
+                    if (head) {
+                        // Rotate head away after correct answer
+                        head.rotation.y = Math.PI; 
+                    }
+                    questionEl.textContent = "Loading....";
+                    optionsEl.innerHTML = "";
+                    timerEl.textContent = "";
+                    difficultyEl.textContent = "";
+                    quizActive = false; // Quiz pauses until next 'R' press
+                }, 1500); // Short delay before clearing for next question
             } else {
                 playSound(soundWrong);
                 setTimeout(() => endGame("❌ Wrong Answer!"), 1500);
@@ -368,6 +363,7 @@
             questions = [...allQuestions].sort(() => 0.5 - Math.random());
             currentIndex = 0;
             updateProgress();
+            // Do not load question immediately here, wait for 'R' press
             questionEl.textContent = "Loading....";
             optionsEl.innerHTML = "";
             timerEl.textContent = "";
@@ -506,7 +502,7 @@
         
         createSimpleDoll();
         
-        // OrbitControls - simple implementation (for testing)
+        // OrbitControls - simple implementation
         class OrbitControls {
             constructor(camera, domElement) {
                 this.camera = camera;
@@ -532,9 +528,8 @@
                     const deltaX = e.clientX - mouseX;
                     const deltaY = e.clientY - mouseY;
                     
-                    // Simple rotation around Y axis based on mouse X movement
-                    camera.position.x = Math.cos(deltaX * 0.01) * camera.position.length();
-                    camera.position.z = Math.sin(deltaX * 0.01) * camera.position.length();
+                    camera.position.x = Math.cos(deltaX * 0.01) * 3;
+                    camera.position.z = Math.sin(deltaX * 0.01) * 3;
                     camera.lookAt(0, 1.5, 0);
                     
                     mouseX = e.clientX;
@@ -545,64 +540,29 @@
 
         const controls = new OrbitControls(camera, renderer.domElement);
 
-        // Function to update doll head rotation
-        function updateDollRotation(currentTime) {
-            if (!head || !isRotating) return;
-
-            const elapsed = currentTime - rotationStartTime;
-            let progress = Math.min(elapsed / rotationDuration, 1);
-            
-            // Calculate the shortest path interpolation
-            // Normalize angles to be within -PI to PI to ensure shortest path
-            let startRotation = initialDollRotationY % (2 * Math.PI);
-            let endRotation = targetDollRotationY % (2 * Math.PI);
-
-            let angleDiff = endRotation - startRotation;
-
-            // Adjust for shortest path (e.g., if rotating from -170 to +170, go through 180 degrees, not 340)
-            if (angleDiff > Math.PI) {
-                angleDiff -= (2 * Math.PI);
-            } else if (angleDiff < -Math.PI) {
-                angleDiff += (2 * Math.PI);
-            }
-
-            head.rotation.y = startRotation + angleDiff * progress;
-
-            if (progress >= 1) {
-                isRotating = false;
-                head.rotation.y = targetDollRotationY % (2 * Math.PI); // Ensure final position is exact and normalized
-                // If the rotation just completed and the doll is facing player, load the question
-                if (Math.abs(head.rotation.y) < 0.1 && !quizActive) { // Check if close to 0 radians (facing front)
-                    quizActive = true;
-                    loadQuestion();
-                }
-            }
-        }
-
         // Key press rotation for doll head
         window.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'r' && head && !isRotating && !quizActive) {
-                initialDollRotationY = head.rotation.y;
-                targetDollRotationY = 0; // Rotate to face player (0 radians is front)
-                isRotating = true;
-                rotationStartTime = performance.now();
-                // `animate()` will now call `updateDollRotation` to start the animation
-                console.log('Head rotation initiated to face player, quiz starting soon...');
-            } else if (e.key.toLowerCase() === 'r' && (isRotating || quizActive)) {
-                console.log('Doll is already rotating or quiz is active. Pressing "R" again will not trigger a new rotation.');
+            if (e.key.toLowerCase() === 'r' && head && !quizActive) {
+                head.rotation.y = 0; // Rotate 180 degrees towards the player (back to initial forward)
+                // Add a small delay to simulate turning, then load question
+                setTimeout(() => {
+                    quizActive = true; // Quiz is now active
+                    loadQuestion();
+                }, 500); // 500ms delay for rotation
+                console.log('Head rotated to face player, quiz starting.');
+            } else if (e.key.toLowerCase() === 'r' && head && quizActive) {
+                console.log('Quiz is already active. Pressing "R" again will not rotate the head or restart the question.');
             } else if (e.key.toLowerCase() === 'r' && !head) {
                 console.log('Head object not found - cannot rotate');
             }
         });
 
-        // Main Three.js animation loop
-        function animate(currentTime) {
+        function animate() {
             requestAnimationFrame(animate);
-            updateDollRotation(currentTime); // Call our update function for doll rotation
             renderer.render(scene, camera);
         }
 
-        animate(); // Start the main Three.js render loop
+        animate();
 
         // Handle resizing
         window.addEventListener('resize', () => {
