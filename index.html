@@ -83,13 +83,7 @@
             background: limegreen;
             transition: width 0.5s ease;
         }
-        .badge {
-            font-size: 1.2em;
-            color: gold;
-            text-align: center;
-            margin: 10px 0;
-            height: 24px;
-        }
+        /* Removed .badge styling */
         .question {
             font-size: 1.5em;
             padding: 15px;
@@ -147,33 +141,7 @@
             font-size: 1.2em;
             color: #ffd700;
         }
-        .ladder {
-            flex: 1;
-            background-color: #002b5c;
-            border-radius: 10px;
-            padding: 15px;
-            color: #ffd700;
-            font-weight: bold;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 0 10px gold;
-        }
-        .ladder ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .ladder li {
-            padding: 10px;
-            margin-bottom: 5px;
-            border-radius: 5px;
-            border: 1px solid gold;
-            background-color: #004080;
-        }
-        .ladder .active {
-            background-color: gold;
-            color: black;
-        }
+        /* Removed .ladder styling */
 
         .final-congrats {
             display: flex;
@@ -221,7 +189,6 @@
         <div class="container" id="game-container">
             <div class="game-container">
                 <div class="progress-bar-container"><div class="progress-bar" id="progress-bar"></div></div>
-                <div class="badge" id="badge-msg"></div>
                 <div class="lifelines">
                     <button class="lifeline-btn" onclick="use5050()" id="lifeline5050">50:50</button>
                     <button class="lifeline-btn" onclick="usePhone()" id="lifelinePhone">Phone</button>
@@ -236,13 +203,9 @@
                 <div class="actions">
                     <button class="action-btn" onclick="restartGame()">🔁 Restart</button>
                     <button class="action-btn" onclick="quitGame()">🚪 Quit</button>
-                    </div>
+                </div>
             </div>
-            <div class="ladder" id="ladder-panel">
-                <h3 style="text-align:center; margin-bottom: 10px;">🌐 AI Mastery Ladder</h3>
-                <ul id="ladder"></ul>
             </div>
-        </div>
     </div>
 
     <audio id="soundQuestion" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
@@ -252,21 +215,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         // KBC Quiz Script
-        const prizes = [
-            "👶 Beginner",
-            "📘 AI Student",
-            "🔬 Tech Enthusiast",
-            "🧱 Model Builder",
-            "🛠️ Python Coder",
-            "🧮 Algorithm Crafter",
-            "🔍 AI Researcher",
-            "💾 Neural Network Designer",
-            "📡 Data Science Analyst",
-            "🚀 Machine Learning Specialist",
-            "🪐 Deep Learning Expert",
-            "🧠 AI Tech Master"
-        ];
-
+        // Removed prizes array
         const allQuestions = [
             { q: "Which company developed GPT-4?", a: ["Google", "OpenAI", "Meta", "IBM"], c: 1, d: "easy" },
             { q: "What does AI stand for?", a: ["Automated Input", "Artificial Intelligence", "Advanced Interface", "Analog Input"], c: 1, d: "easy" },
@@ -288,9 +237,9 @@
         const questionEl = document.getElementById("question");
         const optionsEl = document.getElementById("options");
         const timerEl = document.getElementById("timer");
-        const ladderEl = document.getElementById("ladder");
+        // Removed ladderEl
         const difficultyEl = document.getElementById("difficulty");
-        const badgeEl = document.getElementById("badge-msg");
+        // Removed badgeEl
         const progressBar = document.getElementById("progress-bar");
         const soundCorrect = document.getElementById("soundCorrect");
         const soundWrong = document.getElementById("soundWrong");
@@ -302,25 +251,12 @@
             restartGame();
         }
 
-        function setupLadder() {
-            ladderEl.innerHTML = "";
-            for (let i = prizes.length - 1; i >= 0; i--) {
-                const li = document.createElement("li");
-                li.textContent = `Q${i + 1}: ${prizes[i]}`;
-                ladderEl.appendChild(li);
-            }
-        }
+        // Removed setupLadder function
 
-        function updateLadder() {
-            const items = ladderEl.querySelectorAll("li");
-            items.forEach((li, i) => {
-                li.classList.remove("active");
-                if (i === prizes.length - 1 - currentIndex) li.classList.add("active");
-            });
-        }
+        // Removed updateLadder function
 
         function updateProgress() {
-            const percent = ((currentIndex) / prizes.length) * 100;
+            const percent = ((currentIndex) / allQuestions.length) * 100; // Adjusted to allQuestions.length
             progressBar.style.width = percent + "%";
         }
 
@@ -328,31 +264,18 @@
             clearInterval(timer);
             if (currentIndex >= questions.length) {
                 confetti({ particleCount: 300, spread: 100, origin: { y: 0.6 } });
-                document.getElementById("ladder-panel").style.display = "none";
-
-                const rows = [
-                    prizes.slice(0, 4),
-                    prizes.slice(4, 8),
-                    prizes.slice(8, 11),
-                ];
-                let html = `<div class="final-congrats">
+                // Removed ladder-panel display none
+                
+                // Simplified final congratulations message
+                questionEl.innerHTML = `<div class="final-congrats">
                     <h2>🎉 Congratulations!</h2>
-                    <p>You've completed all levels and earned the following badges:</p>`;
-
-                rows.forEach(row => {
-                    html += `<div class="badge-row">`;
-                    row.forEach(p => {
-                        html += `<div class="badge-box">${p}</div>`;
-                    });
-                    html += `</div>`;
-                });
-
-                html += `<div class="final-badge">🏆 Final Badge: ${prizes[prizes.length - 1]}</div></div>`;
-                questionEl.innerHTML = html;
+                    <p>You've answered all questions!</p>
+                    <div class="final-badge">🏆 Quiz Master!</div>
+                </div>`;
                 optionsEl.innerHTML = "";
                 timerEl.textContent = "";
                 difficultyEl.textContent = "";
-                badgeEl.textContent = "";
+                // Removed badgeEl.textContent
                 document.querySelectorAll(".lifeline-btn").forEach(btn => btn.style.display = "none");
                 progressBar.style.width = "100%";
                 return;
@@ -367,12 +290,12 @@
                 if (timeLeft <= 0) endGame("⏱️ Time’s up!");
             }, 1000);
 
-            updateLadder();
+            // Removed updateLadder call
             updateProgress();
             difficultyEl.textContent = `🔎 Difficulty: ${q.d.charAt(0).toUpperCase() + q.d.slice(1)}`;
             questionEl.textContent = `Q${currentIndex + 1}. ${q.q}`;
             optionsEl.innerHTML = "";
-            badgeEl.textContent = "";
+            // Removed badgeEl.textContent
 
             playSound(soundQuestion);
             q.a.forEach((option, i) => {
@@ -402,7 +325,7 @@
 
             if (i === correct) {
                 playSound(soundCorrect);
-                badgeEl.textContent = `🎖️ Badge Unlocked: ${prizes[currentIndex]}`;
+                // Removed badgeEl.textContent
                 currentIndex++;
                 setTimeout(loadQuestion, 2000);
             } else {
@@ -421,7 +344,7 @@
             optionsEl.innerHTML = "";
             timerEl.textContent = "";
             difficultyEl.textContent = "";
-            badgeEl.textContent = "";
+            // Removed badgeEl.textContent
         }
 
         function restartGame() {
@@ -432,7 +355,7 @@
             });
             questions = [...allQuestions].sort(() => 0.5 - Math.random());
             currentIndex = 0;
-            setupLadder();
+            // Removed setupLadder call
             updateProgress();
             loadQuestion();
         }
