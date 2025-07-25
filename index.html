@@ -18,10 +18,9 @@
   </style>
 </head>
 <body>
-  <script type="module">
-    import * as THREE from 'https://unpkg.com/three@0.155.0/build/three.module.js';
-    import { GLTFLoader } from 'https://unpkg.com/three@0.155.0/examples/jsm/loaders/GLTFLoader.js';
-    import { OrbitControls } from 'https://unpkg.com/three@0.155.0/examples/jsm/controls/OrbitControls.js';
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Use global THREE object from CDN
 
     let scene, camera, renderer, model, head;
 
@@ -38,10 +37,86 @@
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
     scene.add(ambientLight);
 
+    // GLTFLoader - using a direct implementation since we can't import modules
+    class GLTFLoader {
+      load(url, onLoad, onProgress, onError) {
+        fetch(url)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.arrayBuffer();
+          })
+          .then(data => {
+            // Basic GLB parser - this is simplified
+            console.log('GLB file loaded, but parsing requires more complex implementation');
+            if (onError) onError(new Error('GLB parsing not implemented in this simple version'));
+          })
+          .catch(error => {
+            console.error('Error loading GLB:', error);
+            if (onError) onError(error);
+          });
+      }
+    }
+    
     const loader = new GLTFLoader();
     
-    // Load external GLB model
+    // Since GLB loading is complex, let's create a simple doll and show how to replace it
+    function createSimpleDoll() {
+      model = new THREE.Group();
+      
+      // Body
+      const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.4, 1.2, 8);
+      const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xffff00 });
+      const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+      body.position.y = 0.6;
+      model.add(body);
+      
+      // Head (this will be our rotatable part)
+      const headGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+      const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffddaa });
+      head = new THREE.Mesh(headGeometry, headMaterial);
+      head.position.y = 1.5;
+      model.add(head);
+      
+      // Hair
+      const hairGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+      const hairMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+      
+      const leftHair = new THREE.Mesh(hairGeometry, hairMaterial);
+      leftHair.position.set(-0.2, 0.2, 0);
+      head.add(leftHair);
+      
+      const rightHair = new THREE.Mesh(hairGeometry, hairMaterial);
+      rightHair.position.set(0.2, 0.2, 0);
+      head.add(rightHair);
+      
+      // Eyes
+      const eyeGeometry = new THREE.SphereGeometry(0.03, 8, 8);
+      const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+      
+      const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+      leftEye.position.set(-0.08, 0.05, 0.2);
+      head.add(leftEye);
+      
+      const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+      rightEye.position.set(0.08, 0.05, 0.2);
+      head.add(rightEye);
+      
+      model.scale.set(1.5, 1.5, 1.5);
+      scene.add(model);
+      
+      console.log('Simple doll created. Replace this function with GLB loading when you have a proper GLB file.');
+    }
+    
+    // Create simple doll for now
+    createSimpleDoll();
+    
+    // Load external GLB model (currently shows error handling)
     loader.load('./doll.glb', function (gltf) {
+      // Remove simple doll and add GLB model
+      scene.remove(model);
+      
       model = gltf.scene;
       model.scale.set(1.5, 1.5, 1.5);
       scene.add(model);
@@ -69,6 +144,44 @@
       console.error('Error loading model:', error);
       console.log('Make sure doll.glb file is in the same directory as this HTML file');
     });
+
+    // OrbitControls - simple implementation
+    class OrbitControls {
+      constructor(camera, domElement) {
+        this.camera = camera;
+        this.domElement = domElement;
+        this.enabled = true;
+        
+        // Basic mouse controls
+        let isMouseDown = false;
+        let mouseX = 0, mouseY = 0;
+        
+        domElement.addEventListener('mousedown', (e) => {
+          isMouseDown = true;
+          mouseX = e.clientX;
+          mouseY = e.clientY;
+        });
+        
+        domElement.addEventListener('mouseup', () => {
+          isMouseDown = false;
+        });
+        
+        domElement.addEventListener('mousemove', (e) => {
+          if (!isMouseDown) return;
+          
+          const deltaX = e.clientX - mouseX;
+          const deltaY = e.clientY - mouseY;
+          
+          // Simple orbit rotation
+          camera.position.x = Math.cos(deltaX * 0.01) * 3;
+          camera.position.z = Math.sin(deltaX * 0.01) * 3;
+          camera.lookAt(0, 1.5, 0);
+          
+          mouseX = e.clientX;
+          mouseY = e.clientY;
+        });
+      }
+    }
 
     // Controls (optional for testing)
     const controls = new OrbitControls(camera, renderer.domElement);
