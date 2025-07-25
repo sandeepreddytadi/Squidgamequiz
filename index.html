@@ -215,7 +215,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         // KBC Quiz Script
-        // Removed prizes array
         const allQuestions = [
             { q: "Which company developed GPT-4?", a: ["Google", "OpenAI", "Meta", "IBM"], c: 1, d: "easy" },
             { q: "What does AI stand for?", a: ["Automated Input", "Artificial Intelligence", "Advanced Interface", "Analog Input"], c: 1, d: "easy" },
@@ -233,13 +232,12 @@
 
         let questions, currentIndex = 0, timer, timeLeft = 30;
         let used5050 = false, usedPhone = false, usedAudience = false;
+        let quizActive = false; // Flag to control quiz flow after 'R' press
 
         const questionEl = document.getElementById("question");
         const optionsEl = document.getElementById("options");
         const timerEl = document.getElementById("timer");
-        // Removed ladderEl
         const difficultyEl = document.getElementById("difficulty");
-        // Removed badgeEl
         const progressBar = document.getElementById("progress-bar");
         const soundCorrect = document.getElementById("soundCorrect");
         const soundWrong = document.getElementById("soundWrong");
@@ -249,14 +247,19 @@
             document.getElementById("welcome-screen").style.display = "none";
             document.getElementById("game-container").style.display = "flex";
             restartGame();
+            // Immediately rotate doll's head away and show loading
+            if (head) {
+                head.rotation.y = Math.PI; // Rotate 180 degrees (away from camera)
+            }
+            questionEl.textContent = "Loading....";
+            optionsEl.innerHTML = ""; // Clear options until 'R' is pressed
+            timerEl.textContent = ""; // Clear timer until 'R' is pressed
+            difficultyEl.textContent = ""; // Clear difficulty until 'R' is pressed
+            quizActive = false; // Quiz is not active yet
         }
 
-        // Removed setupLadder function
-
-        // Removed updateLadder function
-
         function updateProgress() {
-            const percent = ((currentIndex) / allQuestions.length) * 100; // Adjusted to allQuestions.length
+            const percent = ((currentIndex) / allQuestions.length) * 100;
             progressBar.style.width = percent + "%";
         }
 
@@ -264,9 +267,7 @@
             clearInterval(timer);
             if (currentIndex >= questions.length) {
                 confetti({ particleCount: 300, spread: 100, origin: { y: 0.6 } });
-                // Removed ladder-panel display none
                 
-                // Simplified final congratulations message
                 questionEl.innerHTML = `<div class="final-congrats">
                     <h2>🎉 Congratulations!</h2>
                     <p>You've answered all questions!</p>
@@ -275,7 +276,6 @@
                 optionsEl.innerHTML = "";
                 timerEl.textContent = "";
                 difficultyEl.textContent = "";
-                // Removed badgeEl.textContent
                 document.querySelectorAll(".lifeline-btn").forEach(btn => btn.style.display = "none");
                 progressBar.style.width = "100%";
                 return;
@@ -290,12 +290,10 @@
                 if (timeLeft <= 0) endGame("⏱️ Time’s up!");
             }, 1000);
 
-            // Removed updateLadder call
             updateProgress();
             difficultyEl.textContent = `🔎 Difficulty: ${q.d.charAt(0).toUpperCase() + q.d.slice(1)}`;
-            questionEl.textContent = `Q${currentIndex + 1}. ${q.q}`;
+            questionEl.textContent = q.q; // No question number
             optionsEl.innerHTML = "";
-            // Removed badgeEl.textContent
 
             playSound(soundQuestion);
             q.a.forEach((option, i) => {
@@ -325,9 +323,18 @@
 
             if (i === correct) {
                 playSound(soundCorrect);
-                // Removed badgeEl.textContent
                 currentIndex++;
-                setTimeout(loadQuestion, 2000);
+                setTimeout(() => {
+                    if (head) {
+                        // Rotate head away after correct answer
+                        head.rotation.y = Math.PI; 
+                    }
+                    questionEl.textContent = "Loading....";
+                    optionsEl.innerHTML = "";
+                    timerEl.textContent = "";
+                    difficultyEl.textContent = "";
+                    quizActive = false; // Quiz pauses until next 'R' press
+                }, 1500); // Short delay before clearing for next question
             } else {
                 playSound(soundWrong);
                 setTimeout(() => endGame("❌ Wrong Answer!"), 1500);
@@ -344,7 +351,7 @@
             optionsEl.innerHTML = "";
             timerEl.textContent = "";
             difficultyEl.textContent = "";
-            // Removed badgeEl.textContent
+            quizActive = false;
         }
 
         function restartGame() {
@@ -355,9 +362,13 @@
             });
             questions = [...allQuestions].sort(() => 0.5 - Math.random());
             currentIndex = 0;
-            // Removed setupLadder call
             updateProgress();
-            loadQuestion();
+            // Do not load question immediately here, wait for 'R' press
+            questionEl.textContent = "Loading....";
+            optionsEl.innerHTML = "";
+            timerEl.textContent = "";
+            difficultyEl.textContent = "";
+            quizActive = false;
         }
 
         function quitGame() {
@@ -430,14 +441,10 @@
                         if (!response.ok) {
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
-                        // This part needs a proper GLB parser library (like Three.js GLTFLoader)
-                        // For a simplified example, we'll just log an error
                         return response.arrayBuffer();
                     })
                     .then(data => {
                         console.log('GLB file loaded, but parsing requires a proper GLTFLoader.');
-                        // A more complete implementation would parse the GLB data here.
-                        // For now, we'll call onError to indicate failure to parse.
                         if (onError) onError(new Error('GLB parsing not implemented in this simple version without Three.js GLTFLoader module.'));
                     })
                     .catch(error => {
@@ -449,25 +456,22 @@
         
         const loader = new GLTFLoader();
         
-        // Since GLB loading is complex, let's create a simple doll and show how to replace it
+        // Simple doll fallback
         function createSimpleDoll() {
             model = new THREE.Group();
             
-            // Body
             const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.4, 1.2, 8);
             const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xffff00 });
             const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
             body.position.y = 0.6;
             model.add(body);
             
-            // Head (this will be our rotatable part)
             const headGeometry = new THREE.SphereGeometry(0.25, 16, 16);
             const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffddaa });
             head = new THREE.Mesh(headGeometry, headMaterial);
             head.position.y = 1.5;
             model.add(head);
             
-            // Hair
             const hairGeometry = new THREE.SphereGeometry(0.15, 8, 8);
             const hairMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
             
@@ -479,7 +483,6 @@
             rightHair.position.set(0.2, 0.2, 0);
             head.add(rightHair);
             
-            // Eyes
             const eyeGeometry = new THREE.SphereGeometry(0.03, 8, 8);
             const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
             
@@ -497,30 +500,8 @@
             console.log('Simple doll created. Replace this function with GLB loading when you have a proper GLB file.');
         }
         
-        // Create simple doll for now
         createSimpleDoll();
         
-        // Load external GLB model (currently shows error handling)
-        // This part would ideally use a proper GLTFLoader from Three.js examples if available
-        // loader.load('./doll.glb', function (gltf) {
-        //     scene.remove(model);
-        //     model = gltf.scene;
-        //     model.scale.set(1.5, 1.5, 1.5);
-        //     scene.add(model);
-        //     head = model.getObjectByName('head') || model.getObjectByName('Head') || model.getObjectByName('HEAD') || model.children.find(child => child.name.toLowerCase().includes('head'));
-        //     if (!head && model.children.length > 0) {
-        //         head = model.children[0];
-        //     }
-        //     console.log('Model loaded successfully');
-        //     console.log('Available objects:', model.children.map(child => child.name));
-        //     console.log('Head object found:', head ? head.name : 'None');
-        // }, function (progress) {
-        //     console.log('Loading progress:', (progress.loaded / progress.total * 100) + '%');
-        // }, function (error) {
-        //     console.error('Error loading model:', error);
-        //     console.log('Make sure doll.glb file is in the same directory as this HTML file. Using simple doll as fallback.');
-        // });
-
         // OrbitControls - simple implementation
         class OrbitControls {
             constructor(camera, domElement) {
@@ -557,14 +538,20 @@
             }
         }
 
-        // Controls (optional for testing)
         const controls = new OrbitControls(camera, renderer.domElement);
 
-        // Key press rotation
+        // Key press rotation for doll head
         window.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'r' && head) {
-                head.rotation.y += Math.PI / 8;
-                console.log('Head rotated, current Y rotation:', head.rotation.y);
+            if (e.key.toLowerCase() === 'r' && head && !quizActive) {
+                head.rotation.y = 0; // Rotate 180 degrees towards the player (back to initial forward)
+                // Add a small delay to simulate turning, then load question
+                setTimeout(() => {
+                    quizActive = true; // Quiz is now active
+                    loadQuestion();
+                }, 500); // 500ms delay for rotation
+                console.log('Head rotated to face player, quiz starting.');
+            } else if (e.key.toLowerCase() === 'r' && head && quizActive) {
+                console.log('Quiz is already active. Pressing "R" again will not rotate the head or restart the question.');
             } else if (e.key.toLowerCase() === 'r' && !head) {
                 console.log('Head object not found - cannot rotate');
             }
