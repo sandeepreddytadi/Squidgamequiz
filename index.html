@@ -498,4 +498,118 @@
             rightEye.position.set(0.08, 0.05, 0.2);
             head.add(rightEye);
             
-           
+            model.scale.set(1.5, 1.5, 1.5);
+            scene.add(model);
+            
+            console.log('Simple doll created. Replace this function with GLB loading when you have a proper GLB file.');
+        }
+        
+        createSimpleDoll();
+        
+        // OrbitControls - simple implementation (for testing)
+        class OrbitControls {
+            constructor(camera, domElement) {
+                this.camera = camera;
+                this.domElement = domElement;
+                this.enabled = true;
+                
+                let isMouseDown = false;
+                let mouseX = 0, mouseY = 0;
+                
+                domElement.addEventListener('mousedown', (e) => {
+                    isMouseDown = true;
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                });
+                
+                domElement.addEventListener('mouseup', () => {
+                    isMouseDown = false;
+                });
+                
+                domElement.addEventListener('mousemove', (e) => {
+                    if (!isMouseDown) return;
+                    
+                    const deltaX = e.clientX - mouseX;
+                    const deltaY = e.clientY - mouseY;
+                    
+                    // Simple rotation around Y axis based on mouse X movement
+                    camera.position.x = Math.cos(deltaX * 0.01) * camera.position.length();
+                    camera.position.z = Math.sin(deltaX * 0.01) * camera.position.length();
+                    camera.lookAt(0, 1.5, 0);
+                    
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                });
+            }
+        }
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+
+        // Function to update doll head rotation
+        function updateDollRotation(currentTime) {
+            if (!head || !isRotating) return;
+
+            const elapsed = currentTime - rotationStartTime;
+            let progress = Math.min(elapsed / rotationDuration, 1);
+            
+            // Calculate the shortest path interpolation
+            // Normalize angles to be within -PI to PI to ensure shortest path
+            let startRotation = initialDollRotationY % (2 * Math.PI);
+            let endRotation = targetDollRotationY % (2 * Math.PI);
+
+            let angleDiff = endRotation - startRotation;
+
+            // Adjust for shortest path (e.g., if rotating from -170 to +170, go through 180 degrees, not 340)
+            if (angleDiff > Math.PI) {
+                angleDiff -= (2 * Math.PI);
+            } else if (angleDiff < -Math.PI) {
+                angleDiff += (2 * Math.PI);
+            }
+
+            head.rotation.y = startRotation + angleDiff * progress;
+
+            if (progress >= 1) {
+                isRotating = false;
+                head.rotation.y = targetDollRotationY % (2 * Math.PI); // Ensure final position is exact and normalized
+                // If the rotation just completed and the doll is facing player, load the question
+                if (Math.abs(head.rotation.y) < 0.1 && !quizActive) { // Check if close to 0 radians (facing front)
+                    quizActive = true;
+                    loadQuestion();
+                }
+            }
+        }
+
+        // Key press rotation for doll head
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'r' && head && !isRotating && !quizActive) {
+                initialDollRotationY = head.rotation.y;
+                targetDollRotationY = 0; // Rotate to face player (0 radians is front)
+                isRotating = true;
+                rotationStartTime = performance.now();
+                // `animate()` will now call `updateDollRotation` to start the animation
+                console.log('Head rotation initiated to face player, quiz starting soon...');
+            } else if (e.key.toLowerCase() === 'r' && (isRotating || quizActive)) {
+                console.log('Doll is already rotating or quiz is active. Pressing "R" again will not trigger a new rotation.');
+            } else if (e.key.toLowerCase() === 'r' && !head) {
+                console.log('Head object not found - cannot rotate');
+            }
+        });
+
+        // Main Three.js animation loop
+        function animate(currentTime) {
+            requestAnimationFrame(animate);
+            updateDollRotation(currentTime); // Call our update function for doll rotation
+            renderer.render(scene, camera);
+        }
+
+        animate(); // Start the main Three.js render loop
+
+        // Handle resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = (0.25 * window.innerWidth) / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(0.25 * window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
