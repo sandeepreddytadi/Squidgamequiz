@@ -235,6 +235,7 @@
         let rotationStartTime = 0;
         const rotationDuration = 2000; // 2 seconds in milliseconds
         let targetDollRotationY = 0;
+        let initialDollRotationY = 0; // Store the rotation when animation starts
 
         const questionEl = document.getElementById("question");
         const optionsEl = document.getElementById("options");
@@ -248,18 +249,16 @@
         function startGame() {
             document.getElementById("welcome-screen").style.display = "none";
             document.getElementById("game-container").style.display = "flex";
-            restartGame();
-            // Immediately rotate doll's head away and show loading
+            restartGame(); // This will reset quiz state and clear question area
+
+            // Start doll rotation to face away
             if (head) {
+                initialDollRotationY = head.rotation.y;
                 targetDollRotationY = Math.PI; // Rotate 180 degrees (away from camera)
                 isRotating = true;
                 rotationStartTime = performance.now();
+                // `animate()` is already running and will call `updateDollRotation`
             }
-            questionEl.textContent = "Loading....";
-            optionsEl.innerHTML = ""; // Clear options until 'R' is pressed
-            timerEl.textContent = ""; // Clear timer until 'R' is pressed
-            difficultyEl.textContent = ""; // Clear difficulty until 'R' is pressed
-            quizActive = false; // Quiz is not active yet
         }
 
         function updateProgress() {
@@ -328,18 +327,19 @@
             if (i === correct) {
                 playSound(soundCorrect);
                 currentIndex++;
-                setTimeout(() => {
-                    if (head) {
-                        targetDollRotationY = Math.PI; // Rotate head away after correct answer
-                        isRotating = true;
-                        rotationStartTime = performance.now();
-                    }
-                    questionEl.textContent = "Loading....";
-                    optionsEl.innerHTML = "";
-                    timerEl.textContent = "";
-                    difficultyEl.textContent = "";
-                    quizActive = false; // Quiz pauses until next 'R' press
-                }, 1500); // Short delay before starting rotation and clearing for next question
+                // Set up for next question's doll rotation
+                if (head) {
+                    initialDollRotationY = head.rotation.y;
+                    targetDollRotationY = Math.PI; // Rotate head away after correct answer
+                    isRotating = true;
+                    rotationStartTime = performance.now();
+                }
+                // Clear quiz display immediately
+                questionEl.textContent = "Loading....";
+                optionsEl.innerHTML = "";
+                timerEl.textContent = "";
+                difficultyEl.textContent = "";
+                quizActive = false; // Quiz pauses until next 'R' press
             } else {
                 playSound(soundWrong);
                 setTimeout(() => endGame("❌ Wrong Answer!"), 1500);
@@ -498,110 +498,4 @@
             rightEye.position.set(0.08, 0.05, 0.2);
             head.add(rightEye);
             
-            model.scale.set(1.5, 1.5, 1.5);
-            scene.add(model);
-            
-            console.log('Simple doll created. Replace this function with GLB loading when you have a proper GLB file.');
-        }
-        
-        createSimpleDoll();
-        
-        // OrbitControls - simple implementation
-        class OrbitControls {
-            constructor(camera, domElement) {
-                this.camera = camera;
-                this.domElement = domElement;
-                this.enabled = true;
-                
-                let isMouseDown = false;
-                let mouseX = 0, mouseY = 0;
-                
-                domElement.addEventListener('mousedown', (e) => {
-                    isMouseDown = true;
-                    mouseX = e.clientX;
-                    mouseY = e.clientY;
-                });
-                
-                domElement.addEventListener('mouseup', () => {
-                    isMouseDown = false;
-                });
-                
-                domElement.addEventListener('mousemove', (e) => {
-                    if (!isMouseDown) return;
-                    
-                    const deltaX = e.clientX - mouseX;
-                    const deltaY = e.clientY - mouseY;
-                    
-                    camera.position.x = Math.cos(deltaX * 0.01) * 3;
-                    camera.position.z = Math.sin(deltaX * 0.01) * 3;
-                    camera.lookAt(0, 1.5, 0);
-                    
-                    mouseX = e.clientX;
-                    mouseY = e.clientY;
-                });
-            }
-        }
-
-        const controls = new OrbitControls(camera, renderer.domElement);
-
-        // Function to animate doll head rotation
-        function animateDollRotation() {
-            if (!head || !isRotating) return;
-
-            const elapsed = performance.now() - rotationStartTime;
-            let progress = Math.min(elapsed / rotationDuration, 1);
-            
-            // Determine the shortest path for rotation
-            let startRotation = head.rotation.y;
-            let endRotation = targetDollRotationY;
-
-            let diff = endRotation - startRotation;
-            if (diff > Math.PI) diff -= (2 * Math.PI);
-            if (diff < -Math.PI) diff += (2 * Math.PI);
-
-            head.rotation.y = startRotation + diff * progress;
-
-            if (progress < 1) {
-                requestAnimationFrame(animateDollRotation);
-            } else {
-                isRotating = false;
-                head.rotation.y = targetDollRotationY; // Ensure it lands exactly on target
-                // If the rotation just completed and we're starting a question
-                if (targetDollRotationY === 0 && !quizActive) {
-                    quizActive = true;
-                    loadQuestion();
-                }
-            }
-        }
-
-        // Key press rotation for doll head
-        window.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'r' && head && !isRotating && !quizActive) {
-                targetDollRotationY = 0; // Rotate to face player
-                isRotating = true;
-                rotationStartTime = performance.now();
-                animateDollRotation(); // Start the rotation animation
-                console.log('Head rotation initiated to face player, quiz starting soon...');
-            } else if (e.key.toLowerCase() === 'r' && (isRotating || quizActive)) {
-                console.log('Doll is already rotating or quiz is active. Pressing "R" again will not trigger a new rotation.');
-            } else if (e.key.toLowerCase() === 'r' && !head) {
-                console.log('Head object not found - cannot rotate');
-            }
-        });
-
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        }
-
-        animate(); // Start the Three.js render loop
-
-        // Handle resizing
-        window.addEventListener('resize', () => {
-            camera.aspect = (0.25 * window.innerWidth) / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(0.25 * window.innerWidth, window.innerHeight);
-        });
-    </script>
-</body>
-</html>
+           
