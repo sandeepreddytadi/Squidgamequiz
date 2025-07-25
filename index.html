@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -23,6 +24,7 @@
             width: 25vw; /* GLB model takes 25% width */
             height: 100vh;
             display: block;
+            background-color: #001f3f; /* Match body background */
         }
         .quiz-container-wrapper {
             width: 75vw; /* Quiz takes 75% width */
@@ -59,6 +61,10 @@
             border: none;
             border-radius: 8px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .start-btn:hover {
+            background-color: #ffd700;
         }
         .game-container {
             background-color: #003366;
@@ -83,7 +89,6 @@
             background: limegreen;
             transition: width 0.5s ease;
         }
-        /* Removed .badge styling */
         .question {
             font-size: 1.5em;
             padding: 15px;
@@ -112,6 +117,10 @@
         .option-btn:hover {
             background-color: #0059b3;
         }
+        .option-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         .lifelines, .actions {
             display: flex;
             justify-content: space-between;
@@ -128,6 +137,10 @@
             padding: 8px 12px;
             cursor: pointer;
             flex: 1;
+            transition: background-color 0.3s ease;
+        }
+        .lifeline-btn:hover, .action-btn:hover {
+            background-color: #ffd700;
         }
         .lifeline-btn:disabled {
             background-color: gray;
@@ -141,8 +154,6 @@
             font-size: 1.2em;
             color: #ffd700;
         }
-        /* Removed .ladder styling */
-
         .final-congrats {
             display: flex;
             flex-direction: column;
@@ -175,6 +186,60 @@
             border: 3px solid white;
             margin-top: 20px;
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.7); /* Black w/ opacity */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #003366;
+            margin: auto;
+            padding: 30px;
+            border: 2px solid gold;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            text-align: center;
+            color: #c0c0c0;
+            position: relative;
+        }
+        .modal-content h3 {
+            color: gold;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        .modal-content p {
+            font-size: 1.2em;
+            line-height: 1.6;
+            white-space: pre-wrap; /* Preserve line breaks for audience poll */
+        }
+        .modal-close-btn {
+            background-color: gold;
+            color: black;
+            font-size: 1.1em;
+            font-weight: bold;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 25px;
+            transition: background-color 0.3s ease;
+        }
+        .modal-close-btn:hover {
+            background-color: #ffd700;
+        }
     </style>
 </head>
 <body>
@@ -205,14 +270,22 @@
                     <button class="action-btn" onclick="quitGame()">🚪 Quit</button>
                 </div>
             </div>
-            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Lifelines -->
+    <div id="myModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3 id="modalTitle"></h3>
+            <p id="modalMessage"></p>
+            <button class="modal-close-btn" onclick="closeModal()">Close</button>
+        </div>
     </div>
 
     <audio id="soundQuestion" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
     <audio id="soundCorrect" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" preload="auto"></audio>
     <audio id="soundWrong" src="https://actions.google.com/sounds/v1/cartoon/boing.ogg" preload="auto"></audio>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         // KBC Quiz Script
         const allQuestions = [
@@ -243,13 +316,28 @@
         const soundWrong = document.getElementById("soundWrong");
         const soundQuestion = document.getElementById("soundQuestion");
 
+        // Modal elements
+        const modal = document.getElementById("myModal");
+        const modalTitle = document.getElementById("modalTitle");
+        const modalMessage = document.getElementById("modalMessage");
+
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modal.style.display = "flex";
+        }
+
+        function closeModal() {
+            modal.style.display = "none";
+        }
+
         function startGame() {
             document.getElementById("welcome-screen").style.display = "none";
             document.getElementById("game-container").style.display = "flex";
             restartGame();
             // Immediately rotate doll's head away and show loading
             if (head) {
-                head.rotation.y = Math.PI; // Rotate 180 degrees (away from camera)
+                rotateHead(Math.PI, 3000); // Rotate 180 degrees (away from camera) over 3 seconds
             }
             questionEl.textContent = "Loading....";
             optionsEl.innerHTML = ""; // Clear options until 'R' is pressed
@@ -327,7 +415,7 @@
                 setTimeout(() => {
                     if (head) {
                         // Rotate head away after correct answer
-                        head.rotation.y = Math.PI; 
+                        rotateHead(Math.PI, 3000); // Rotate 180 degrees (away from camera) over 3 seconds
                     }
                     questionEl.textContent = "Loading....";
                     optionsEl.innerHTML = "";
@@ -401,8 +489,8 @@
             usedPhone = true;
             document.getElementById("lifelinePhone").disabled = true;
             const correct = questions[currentIndex].c;
-            const i = Math.random() < 0.8 ? correct : (correct + 1) % 4;
-            alert(`📞 Your friend suggests: "${questions[currentIndex].a[i]}"`);
+            const i = Math.random() < 0.8 ? correct : (correct + Math.floor(Math.random() * 3) + 1) % 4; // Ensure a different wrong answer if random
+            showModal("📞 Phone a Friend", `Your friend suggests: "${questions[currentIndex].a[i]}"`);
         }
 
         function useAudience() {
@@ -411,165 +499,21 @@
             document.getElementById("lifelineAudience").disabled = true;
             const correct = questions[currentIndex].c;
             let msg = "📊 Audience Poll:\n";
+            let correctPercentage = 60 + Math.floor(Math.random() * 20); // 60-80% for correct
+            let remainingPercentage = 100 - correctPercentage;
+            let otherPercentages = [];
+
+            // Distribute remaining percentage among other options
+            for (let i = 0; i < 3; i++) {
+                let p = Math.floor(Math.random() * (remainingPercentage / (3 - i)));
+                otherPercentages.push(p);
+                remainingPercentage -= p;
+            }
+            otherPercentages.push(remainingPercentage); // Assign remaining to the last one
+
+            // Shuffle other percentages
+            otherPercentages.sort(() => 0.5 - Math.random());
+
+            let currentOtherIndex = 0;
             for (let i = 0; i < 4; i++) {
-                msg += `Option ${String.fromCharCode(65 + i)}: ${i === correct ? 65 : Math.floor(Math.random() * 35)}%\n`;
-            }
-            alert(msg);
-        }
-
-        // GLB Model Script
-        let scene, camera, renderer, model, head;
-        const glbCanvas = document.getElementById("glb-canvas");
-
-        // Scene Setup
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(45, (0.25 * window.innerWidth) / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 1.5, 3);
-
-        renderer = new THREE.WebGLRenderer({ antialias: true, canvas: glbCanvas });
-        renderer.setSize(0.25 * window.innerWidth, window.innerHeight);
-
-        // Light
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
-        scene.add(ambientLight);
-
-        // GLTFLoader - using a direct implementation since we can't import modules
-        class GLTFLoader {
-            load(url, onLoad, onProgress, onError) {
-                fetch(url)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.arrayBuffer();
-                    })
-                    .then(data => {
-                        console.log('GLB file loaded, but parsing requires a proper GLTFLoader.');
-                        if (onError) onError(new Error('GLB parsing not implemented in this simple version without Three.js GLTFLoader module.'));
-                    })
-                    .catch(error => {
-                        console.error('Error loading GLB:', error);
-                        if (onError) onError(error);
-                    });
-            }
-        }
-        
-        const loader = new GLTFLoader();
-        
-        // Simple doll fallback
-        function createSimpleDoll() {
-            model = new THREE.Group();
-            
-            const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.4, 1.2, 8);
-            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xffff00 });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.y = 0.6;
-            model.add(body);
-            
-            const headGeometry = new THREE.SphereGeometry(0.25, 16, 16);
-            const headMaterial = new THREE.MeshLambertMaterial({ color: 0xffddaa });
-            head = new THREE.Mesh(headGeometry, headMaterial);
-            head.position.y = 1.5;
-            model.add(head);
-            
-            const hairGeometry = new THREE.SphereGeometry(0.15, 8, 8);
-            const hairMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-            
-            const leftHair = new THREE.Mesh(hairGeometry, hairMaterial);
-            leftHair.position.set(-0.2, 0.2, 0);
-            head.add(leftHair);
-            
-            const rightHair = new THREE.Mesh(hairGeometry, hairMaterial);
-            rightHair.position.set(0.2, 0.2, 0);
-            head.add(rightHair);
-            
-            const eyeGeometry = new THREE.SphereGeometry(0.03, 8, 8);
-            const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
-            
-            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-            leftEye.position.set(-0.08, 0.05, 0.2);
-            head.add(leftEye);
-            
-            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-            rightEye.position.set(0.08, 0.05, 0.2);
-            head.add(rightEye);
-            
-            model.scale.set(1.5, 1.5, 1.5);
-            scene.add(model);
-            
-            console.log('Simple doll created. Replace this function with GLB loading when you have a proper GLB file.');
-        }
-        
-        createSimpleDoll();
-        
-        // OrbitControls - simple implementation
-        class OrbitControls {
-            constructor(camera, domElement) {
-                this.camera = camera;
-                this.domElement = domElement;
-                this.enabled = true;
-                
-                let isMouseDown = false;
-                let mouseX = 0, mouseY = 0;
-                
-                domElement.addEventListener('mousedown', (e) => {
-                    isMouseDown = true;
-                    mouseX = e.clientX;
-                    mouseY = e.clientY;
-                });
-                
-                domElement.addEventListener('mouseup', () => {
-                    isMouseDown = false;
-                });
-                
-                domElement.addEventListener('mousemove', (e) => {
-                    if (!isMouseDown) return;
-                    
-                    const deltaX = e.clientX - mouseX;
-                    const deltaY = e.clientY - mouseY;
-                    
-                    camera.position.x = Math.cos(deltaX * 0.01) * 3;
-                    camera.position.z = Math.sin(deltaX * 0.01) * 3;
-                    camera.lookAt(0, 1.5, 0);
-                    
-                    mouseX = e.clientX;
-                    mouseY = e.clientY;
-                });
-            }
-        }
-
-        const controls = new OrbitControls(camera, renderer.domElement);
-
-        // Key press rotation for doll head
-        window.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'r' && head && !quizActive) {
-                head.rotation.y = 0; // Rotate 180 degrees towards the player (back to initial forward)
-                // Add a small delay to simulate turning, then load question
-                setTimeout(() => {
-                    quizActive = true; // Quiz is now active
-                    loadQuestion();
-                }, 500); // 500ms delay for rotation
-                console.log('Head rotated to face player, quiz starting.');
-            } else if (e.key.toLowerCase() === 'r' && head && quizActive) {
-                console.log('Quiz is already active. Pressing "R" again will not rotate the head or restart the question.');
-            } else if (e.key.toLowerCase() === 'r' && !head) {
-                console.log('Head object not found - cannot rotate');
-            }
-        });
-
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        }
-
-        animate();
-
-        // Handle resizing
-        window.addEventListener('resize', () => {
-            camera.aspect = (0.25 * window.innerWidth) / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(0.25 * window.innerWidth, window.innerHeight);
-        });
-    </script>
-</body>
-</html>
+                if (i 
